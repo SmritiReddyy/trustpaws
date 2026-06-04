@@ -1,5 +1,5 @@
 import React, { useEffect, useState } from 'react';
-import { Search, Plus, Phone, Mail } from 'lucide-react';
+import { Search, Plus, Phone, Mail, KeyRound, CheckCircle } from 'lucide-react';
 import api from '../../utils/api';
 import Modal from '../../components/ui/Modal';
 import toast from 'react-hot-toast';
@@ -8,6 +8,8 @@ export default function Parents() {
   const [parents, setParents] = useState([]);
   const [search, setSearch] = useState('');
   const [modal, setModal] = useState(false);
+  const [pinModal, setPinModal] = useState(null); // parent object
+  const [pin, setPin] = useState('');
   const [form, setForm] = useState({ name: '', phone: '', email: '' });
   const [saving, setSaving] = useState(false);
 
@@ -20,6 +22,23 @@ export default function Parents() {
     p.phone.includes(search) ||
     (p.email || '').toLowerCase().includes(search.toLowerCase())
   );
+
+  const handleSetPin = async (e) => {
+    e.preventDefault();
+    if (pin.length < 4) return toast.error('PIN must be at least 4 digits');
+    setSaving(true);
+    try {
+      await api.post('/parent-auth/set-pin', { parentId: pinModal.id, pin });
+      toast.success(`PIN set for ${pinModal.name}`);
+      setPinModal(null);
+      setPin('');
+      load();
+    } catch (err) {
+      toast.error(err.response?.data?.error || 'Failed to set PIN');
+    } finally {
+      setSaving(false);
+    }
+  };
 
   const handleSubmit = async (e) => {
     e.preventDefault();
@@ -68,9 +87,24 @@ export default function Parents() {
                   )}
                 </div>
               </div>
-              <span className="badge bg-brand-100 text-brand-700">
-                {p.pets.length} {p.pets.length === 1 ? 'pet' : 'pets'}
-              </span>
+              <div className="flex items-center gap-2">
+                {p.pin ? (
+                  <span className="badge bg-green-100 text-green-700 flex items-center gap-1">
+                    <CheckCircle size={11} /> PIN set
+                  </span>
+                ) : (
+                  <span className="badge bg-yellow-100 text-yellow-700">No PIN</span>
+                )}
+                <button
+                  onClick={() => { setPinModal(p); setPin(''); }}
+                  className="badge bg-gray-100 text-gray-600 hover:bg-gray-200 flex items-center gap-1 cursor-pointer"
+                >
+                  <KeyRound size={11} /> {p.pin ? 'Reset PIN' : 'Set PIN'}
+                </button>
+                <span className="badge bg-brand-100 text-brand-700">
+                  {p.pets.length} {p.pets.length === 1 ? 'pet' : 'pets'}
+                </span>
+              </div>
             </div>
             {p.pets.length > 0 && (
               <div className="flex gap-2 mt-3 pt-3 border-t border-gray-100 flex-wrap">
@@ -84,6 +118,32 @@ export default function Parents() {
           </div>
         ))}
       </div>
+
+      {/* Set PIN modal */}
+      <Modal open={!!pinModal} onClose={() => setPinModal(null)} title={`Set PIN — ${pinModal?.name}`}>
+        <form onSubmit={handleSetPin} className="space-y-4">
+          <p className="text-sm text-gray-500">
+            This PIN lets <strong>{pinModal?.name}</strong> log into the parent portal to track their pets.
+          </p>
+          <div>
+            <label className="label">New PIN (4–8 digits)</label>
+            <input
+              type="password"
+              inputMode="numeric"
+              maxLength={8}
+              className="input tracking-widest text-center text-xl"
+              placeholder="••••"
+              value={pin}
+              onChange={(e) => setPin(e.target.value.replace(/\D/g, ''))}
+              autoFocus
+              required
+            />
+          </div>
+          <button type="submit" disabled={saving || pin.length < 4} className="btn-primary w-full">
+            {saving ? 'Saving…' : 'Set PIN'}
+          </button>
+        </form>
+      </Modal>
 
       <Modal open={modal} onClose={() => setModal(false)} title="Add Pet Parent">
         <form onSubmit={handleSubmit} className="space-y-3">

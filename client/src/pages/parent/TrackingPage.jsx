@@ -2,7 +2,7 @@ import React, { useEffect, useState } from 'react';
 import { useParams } from 'react-router-dom';
 import { format } from 'date-fns';
 import { CheckCircle, Circle, AlertTriangle, Clock, CheckSquare, Square } from 'lucide-react';
-import axios from 'axios';
+import api from '../../utils/api';
 import { STATUS_LABELS, STATUS_FLOW, SEVERITY_COLORS } from '../../utils/constants';
 
 const STAGE_ICONS = {
@@ -22,13 +22,13 @@ export default function TrackingPage() {
   const [error, setError] = useState(false);
 
   useEffect(() => {
-    axios.get(`/api/track/${token}`)
+    api.get(`/track/${token}`)
       .then((r) => setAppt(r.data))
       .catch(() => setError(true))
       .finally(() => setLoading(false));
 
     const interval = setInterval(() => {
-      axios.get(`/api/track/${token}`).then((r) => setAppt(r.data)).catch(() => {});
+      api.get(`/track/${token}`).then((r) => setAppt(r.data)).catch(() => {});
     }, 30000);
     return () => clearInterval(interval);
   }, [token]);

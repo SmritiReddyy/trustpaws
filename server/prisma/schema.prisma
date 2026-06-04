@@ -27,6 +27,7 @@ model Parent {
   name      String
   phone     String   @unique
   email     String?
+  pin       String?
   createdAt DateTime @default(now())
   pets      Pet[]
 }

@@ -10,7 +10,8 @@ router.get('/', authenticate, async (req, res) => {
       include: { pets: true },
       orderBy: { createdAt: 'desc' },
     });
-    res.json(parents);
+    // Return pin as boolean only — never expose the hash
+    res.json(parents.map(({ pin, ...p }) => ({ ...p, pin: !!pin })));
   } catch (err) {
     res.status(500).json({ error: err.message });
   }

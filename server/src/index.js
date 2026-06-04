@@ -11,6 +11,7 @@ const incidentRoutes = require('./routes/incidents');
 const photoRoutes = require('./routes/photos');
 const trackingRoutes = require('./routes/tracking');
 const clipRoutes = require('./routes/clips');
+const parentAuthRoutes = require('./routes/parentAuth');
 
 const app = express();
 const PORT = process.env.PORT || 3001;
@@ -27,6 +28,7 @@ app.use('/api/incidents', incidentRoutes);
 app.use('/api/photos', photoRoutes);
 app.use('/api/track', trackingRoutes);
 app.use('/api/clips', clipRoutes);
+app.use('/api/parent-auth', parentAuthRoutes);
 
 app.get('/health', (req, res) => res.json({ status: 'ok' }));
 

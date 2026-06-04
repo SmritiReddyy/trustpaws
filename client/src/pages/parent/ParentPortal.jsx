@@ -1,13 +1,13 @@
 import React, { useEffect, useState } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import { format, formatDistanceToNow, differenceInMinutes } from 'date-fns';
-import { LogOut, ChevronRight, AlertTriangle, Clock, Radio, ShieldAlert, CheckCircle, History } from 'lucide-react';
+import { LogOut, ChevronRight, AlertTriangle, Clock, Radio, ShieldAlert, CheckCircle, History, Video } from 'lucide-react';
 import api from '../../utils/api';
 import toast from 'react-hot-toast';
 import { StatusBadge, SeverityBadge } from '../../components/ui/StatusBadge';
 
 const ACTIVE_STATUSES = ['CHECKED_IN', 'BATHING', 'GROOMING', 'DRYING', 'READY'];
-const TABS = ['Overview', 'History', 'Noted Issues'];
+const TABS = ['Overview', 'History', 'Clips', 'Noted Issues'];
 
 const parseServiceNotes = (raw) => {
   if (!raw) return null;
@@ -98,6 +98,7 @@ export default function ParentPortal() {
             >
               {t === 'Noted Issues' && <ShieldAlert size={14} />}
               {t === 'History' && <History size={14} />}
+              {t === 'Clips' && <Video size={14} />}
               {t}
               {t === 'Noted Issues' && totalIncidents > 0 && (
                 <span className="badge bg-red-100 text-red-600 text-xs">{totalIncidents}</span>
@@ -360,6 +361,33 @@ export default function ParentPortal() {
             </div>
           );
         })()}
+
+        {/* ── CLIPS TAB ── */}
+        {tab === 'Clips' && (
+          <div className="space-y-4">
+            <div className="flex items-center gap-2">
+              <Video size={18} className="text-gray-500" />
+              <h2 className="font-semibold text-gray-900">Recorded Clips</h2>
+            </div>
+
+            <div className="bg-brand-50 border border-brand-100 rounded-xl p-4 text-sm text-brand-800">
+              <p className="font-medium mb-1">🎥 What are clips?</p>
+              <p className="text-xs text-brand-700 leading-relaxed">
+                When our staff uses the Live Monitor during your pet's session, the system automatically detects signs of distress — sudden sounds, movement spikes — and saves a short video clip. These clips are stored here for full transparency.
+              </p>
+            </div>
+
+            <div className="bg-white rounded-xl p-10 text-center shadow-sm border border-gray-100">
+              <div className="text-5xl mb-4">📹</div>
+              <p className="font-semibold text-gray-800">No clips yet</p>
+              <p className="text-sm text-gray-400 mt-1 max-w-xs mx-auto">
+                Clips will appear here if the monitor detects anything unusual during your pet's grooming session.
+              </p>
+            </div>
+
+            <p className="text-center text-xs text-gray-300 pb-4">TrustPaws by Heads Up For Tails</p>
+          </div>
+        )}
 
         {/* ── NOTED ISSUES TAB ── */}
         {tab === 'Noted Issues' && (

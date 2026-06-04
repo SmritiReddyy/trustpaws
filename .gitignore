@@ -12,3 +12,5 @@ prisma/migrations/
 generate_manual.py
 TrustPaws_Instruction_Manual.docx
 *.png
+.claude/package-lock.json
+.claude/

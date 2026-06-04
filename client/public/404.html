@@ -3,9 +3,15 @@
   <head>
     <meta charset="utf-8" />
     <script>
-      // Redirect to the app with the path encoded as a query param
-      var path = window.location.pathname.replace('/trustpaws', '') + window.location.search;
-      window.location.replace('/trustpaws/?redirect=' + encodeURIComponent(path));
+      var segmentCount = 1; // number of path segments in the repo name (/trustpaws = 1)
+      var l = window.location;
+      l.replace(
+        l.protocol + '//' + l.hostname + (l.port ? ':' + l.port : '') +
+        l.pathname.split('/').slice(0, 1 + segmentCount).join('/') + '/?p=/' +
+        l.pathname.slice(1).split('/').slice(segmentCount).join('/').replace(/&/g, '~and~') +
+        (l.search ? '&q=' + l.search.slice(1).replace(/&/g, '~and~') : '') +
+        l.hash
+      );
     </script>
   </head>
   <body></body>

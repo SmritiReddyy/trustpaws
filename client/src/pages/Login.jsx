@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { useNavigate } from 'react-router-dom';
+import { useNavigate, Link } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
 import toast from 'react-hot-toast';
 
@@ -60,6 +60,9 @@ export default function Login() {
         </form>
 
         <p className="text-center text-xs text-gray-400 mt-6">
+          <Link to="/parent/login" className="text-brand-500 hover:underline">Parent portal →</Link>
+        </p>
+        <p className="text-center text-xs text-gray-400 mt-2">
           Heads Up For Tails · TrustPaws
         </p>
       </div>

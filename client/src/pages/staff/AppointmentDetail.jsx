@@ -18,6 +18,8 @@ export default function AppointmentDetail() {
   const [incidentModal, setIncidentModal] = useState(false);
   const [incident, setIncident] = useState({ title: '', description: '', actionTaken: '', severity: 'LOW' });
   const [saving, setSaving] = useState(false);
+  const [completingService, setCompletingService] = useState(null); // service being completed
+  const [serviceForm, setServiceForm] = useState({ condition: 'GOOD', notes: '' });
   const fileRef = useRef();
 
   const load = () => api.get(`/appointments/${id}`).then((r) => setAppt(r.data));
@@ -35,9 +37,40 @@ export default function AppointmentDetail() {
   };
 
   const toggleService = async (svcId, completed) => {
-    await api.patch(`/appointments/${id}/service/${svcId}`, { completed });
-    load();
+    if (completed) {
+      // Uncompleting — no form needed
+      await api.patch(`/appointments/${id}/service/${svcId}`, { completed: false, notes: null });
+      load();
+    } else {
+      // Completing — open the form
+      const svc = appt.services.find((s) => s.id === svcId);
+      setCompletingService(svc);
+      setServiceForm({ condition: 'GOOD', notes: '' });
+    }
   };
+
+  const submitServiceCompletion = async () => {
+    if (!completingService) return;
+    setSaving(true);
+    try {
+      const notesPayload = JSON.stringify({ condition: serviceForm.condition, notes: serviceForm.notes });
+      await api.patch(`/appointments/${id}/service/${completingService.id}`, {
+        completed: true,
+        notes: notesPayload,
+      });
+      setCompletingService(null);
+      load();
+      toast.success('Service marked complete');
+    } catch { toast.error('Failed to update service'); }
+    finally { setSaving(false); }
+  };
+
+  const parseServiceNotes = (raw) => {
+    if (!raw) return null;
+    try { return JSON.parse(raw); } catch { return { notes: raw }; }
+  };
+
+  const CONDITION_LABELS = { GOOD: '✅ Good', SENSITIVE: '⚠️ Sensitive area noted', ATTENTION: '🔴 Needs attention' };
 
   const submitIncident = async () => {
     setSaving(true);
@@ -160,25 +193,39 @@ export default function AppointmentDetail() {
       <div className="card">
         <p className="text-sm font-medium text-gray-700 mb-3">Services</p>
         <div className="space-y-2">
-          {appt.services.map((svc) => (
-            <button
-              key={svc.id}
-              onClick={() => toggleService(svc.id, !svc.completed)}
-              className="flex items-center gap-3 w-full text-left py-1.5"
-            >
-              {svc.completed
-                ? <CheckSquare size={18} className="text-brand-500 shrink-0" />
-                : <Square size={18} className="text-gray-300 shrink-0" />}
-              <span className={`text-sm ${svc.completed ? 'line-through text-gray-400' : 'text-gray-700'}`}>
-                {svc.name}
-              </span>
-              {svc.completedAt && (
-                <span className="ml-auto text-xs text-gray-400">
-                  {format(new Date(svc.completedAt), 'h:mm a')}
-                </span>
-              )}
-            </button>
-          ))}
+          {appt.services.map((svc) => {
+            const parsed = parseServiceNotes(svc.notes);
+            return (
+              <div key={svc.id}>
+                <button
+                  onClick={() => toggleService(svc.id, svc.completed)}
+                  className="flex items-center gap-3 w-full text-left py-1.5"
+                >
+                  {svc.completed
+                    ? <CheckSquare size={18} className="text-brand-500 shrink-0" />
+                    : <Square size={18} className="text-gray-300 shrink-0" />}
+                  <span className={`text-sm ${svc.completed ? 'line-through text-gray-400' : 'text-gray-700'}`}>
+                    {svc.name}
+                  </span>
+                  {svc.completedAt && (
+                    <span className="ml-auto text-xs text-gray-400">
+                      {format(new Date(svc.completedAt), 'h:mm a')}
+                    </span>
+                  )}
+                </button>
+                {svc.completed && parsed && (
+                  <div className="ml-9 mb-1 space-y-0.5">
+                    {parsed.condition && (
+                      <p className="text-xs text-gray-500">{CONDITION_LABELS[parsed.condition] || parsed.condition}</p>
+                    )}
+                    {parsed.notes && (
+                      <p className="text-xs text-gray-400 italic">"{parsed.notes}"</p>
+                    )}
+                  </div>
+                )}
+              </div>
+            );
+          })}
         </div>
       </div>
 
@@ -263,6 +310,51 @@ export default function AppointmentDetail() {
           <p className="text-sm text-gray-600">{appt.notes}</p>
         </div>
       )}
+
+      {/* Service Completion Modal */}
+      <Modal open={!!completingService} onClose={() => setCompletingService(null)} title={`Complete: ${completingService?.name}`}>
+        <div className="space-y-4">
+          <div>
+            <label className="label">How did it go?</label>
+            <div className="grid grid-cols-3 gap-2 mt-1">
+              {[
+                { value: 'GOOD', label: '✅ Good' },
+                { value: 'SENSITIVE', label: '⚠️ Sensitive' },
+                { value: 'ATTENTION', label: '🔴 Needs attention' },
+              ].map((opt) => (
+                <button
+                  key={opt.value}
+                  onClick={() => setServiceForm((f) => ({ ...f, condition: opt.value }))}
+                  className={`text-xs py-2 px-2 rounded-lg border text-center transition-colors ${
+                    serviceForm.condition === opt.value
+                      ? 'border-brand-500 bg-brand-50 text-brand-700 font-medium'
+                      : 'border-gray-200 text-gray-600 hover:border-gray-300'
+                  }`}
+                >
+                  {opt.label}
+                </button>
+              ))}
+            </div>
+          </div>
+          <div>
+            <label className="label">Observations <span className="text-gray-400 font-normal">(optional)</span></label>
+            <textarea
+              className="input"
+              rows={3}
+              placeholder="e.g. Coat was matted near ears, trimmed gently. Very calm during bath."
+              value={serviceForm.notes}
+              onChange={(e) => setServiceForm((f) => ({ ...f, notes: e.target.value }))}
+            />
+          </div>
+          <button
+            onClick={submitServiceCompletion}
+            disabled={saving}
+            className="btn-primary w-full"
+          >
+            {saving ? 'Saving…' : 'Mark Complete'}
+          </button>
+        </div>
+      </Modal>
 
       {/* Log Incident Modal */}
       <Modal open={incidentModal} onClose={() => setIncidentModal(false)} title="Log an Incident">

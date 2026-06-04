@@ -1,13 +1,20 @@
 import React, { useEffect, useState } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
-import { format } from 'date-fns';
-import { LogOut, ChevronRight, AlertTriangle, Clock, Radio, ShieldAlert, CheckCircle } from 'lucide-react';
+import { format, formatDistanceToNow, differenceInMinutes } from 'date-fns';
+import { LogOut, ChevronRight, AlertTriangle, Clock, Radio, ShieldAlert, CheckCircle, History } from 'lucide-react';
 import api from '../../utils/api';
 import toast from 'react-hot-toast';
 import { StatusBadge, SeverityBadge } from '../../components/ui/StatusBadge';
 
 const ACTIVE_STATUSES = ['CHECKED_IN', 'BATHING', 'GROOMING', 'DRYING', 'READY'];
-const TABS = ['Overview', 'Noted Issues'];
+const TABS = ['Overview', 'History', 'Noted Issues'];
+
+const parseServiceNotes = (raw) => {
+  if (!raw) return null;
+  try { return JSON.parse(raw); } catch { return { notes: raw }; }
+};
+
+const CONDITION_LABELS = { GOOD: '✅ Good', SENSITIVE: '⚠️ Sensitive area noted', ATTENTION: '🔴 Needs attention' };
 
 export default function ParentPortal() {
   const navigate = useNavigate();
@@ -90,6 +97,7 @@ export default function ParentPortal() {
               }`}
             >
               {t === 'Noted Issues' && <ShieldAlert size={14} />}
+              {t === 'History' && <History size={14} />}
               {t}
               {t === 'Noted Issues' && totalIncidents > 0 && (
                 <span className="badge bg-red-100 text-red-600 text-xs">{totalIncidents}</span>
@@ -232,6 +240,126 @@ export default function ParentPortal() {
             <p className="text-center text-xs text-gray-300 pb-4">TrustPaws by Heads Up For Tails</p>
           </div>
         )}
+
+        {/* ── HISTORY TAB ── */}
+        {tab === 'History' && (() => {
+          const completedAppts = allAppointments
+            .filter((a) => a.status === 'COMPLETED')
+            .sort((a, b) => new Date(b.scheduledAt) - new Date(a.scheduledAt));
+
+          const totalVisits = completedAppts.length;
+          const lastVisit = completedAppts[0];
+
+          // Most common service
+          const serviceCounts = {};
+          completedAppts.forEach((a) => a.services.forEach((s) => {
+            serviceCounts[s.name] = (serviceCounts[s.name] || 0) + 1;
+          }));
+          const topService = Object.entries(serviceCounts).sort((a, b) => b[1] - a[1])[0];
+
+          return (
+            <div className="space-y-5">
+              {/* Summary stats */}
+              <div className="grid grid-cols-3 gap-3">
+                <div className="bg-white rounded-xl p-3 shadow-sm border border-gray-100 text-center">
+                  <p className="text-2xl font-bold text-brand-500">{totalVisits}</p>
+                  <p className="text-xs text-gray-400 mt-0.5">Total visits</p>
+                </div>
+                <div className="bg-white rounded-xl p-3 shadow-sm border border-gray-100 text-center">
+                  <p className="text-sm font-bold text-gray-800">
+                    {lastVisit ? formatDistanceToNow(new Date(lastVisit.scheduledAt), { addSuffix: true }) : '—'}
+                  </p>
+                  <p className="text-xs text-gray-400 mt-0.5">Last visit</p>
+                </div>
+                <div className="bg-white rounded-xl p-3 shadow-sm border border-gray-100 text-center">
+                  <p className="text-sm font-bold text-gray-800 truncate">{topService ? topService[0] : '—'}</p>
+                  <p className="text-xs text-gray-400 mt-0.5">Top service</p>
+                </div>
+              </div>
+
+              {completedAppts.length === 0 ? (
+                <div className="bg-white rounded-xl p-8 text-center shadow-sm border border-gray-100">
+                  <div className="text-4xl mb-3">🐾</div>
+                  <p className="font-semibold text-gray-900">No visits yet</p>
+                  <p className="text-sm text-gray-500 mt-1">Your visit history will appear here.</p>
+                </div>
+              ) : (
+                <div className="space-y-3">
+                  {completedAppts.map((a) => {
+                    const duration = a.completedAt
+                      ? differenceInMinutes(new Date(a.completedAt), new Date(a.scheduledAt))
+                      : null;
+                    const completedServices = a.services.filter((s) => s.completed);
+
+                    return (
+                      <div key={a.id} className="bg-white rounded-xl shadow-sm border border-gray-100 overflow-hidden">
+                        {/* Header */}
+                        <div className="flex items-center justify-between px-4 py-3 border-b border-gray-100">
+                          <div className="flex items-center gap-2">
+                            <span>{a.pet.species === 'Cat' ? '🐱' : '🐶'}</span>
+                            <div>
+                              <p className="text-sm font-semibold text-gray-900">{a.pet.name}</p>
+                              <p className="text-xs text-gray-400">{format(new Date(a.scheduledAt), 'MMMM d, yyyy')}</p>
+                            </div>
+                          </div>
+                          <div className="text-right">
+                            {duration && <p className="text-xs text-gray-400">{duration} min</p>}
+                            {a.staff && <p className="text-xs text-gray-500">by {a.staff.name}</p>}
+                          </div>
+                        </div>
+
+                        {/* Services with notes */}
+                        <div className="px-4 py-3 space-y-2">
+                          {completedServices.length === 0 && (
+                            <p className="text-xs text-gray-400">No services recorded</p>
+                          )}
+                          {completedServices.map((svc) => {
+                            const parsed = parseServiceNotes(svc.notes);
+                            return (
+                              <div key={svc.id} className="flex items-start gap-2">
+                                <CheckCircle size={14} className="text-brand-500 mt-0.5 shrink-0" />
+                                <div className="flex-1 min-w-0">
+                                  <p className="text-sm text-gray-700">{svc.name}</p>
+                                  {parsed?.condition && parsed.condition !== 'GOOD' && (
+                                    <p className="text-xs text-amber-600">{CONDITION_LABELS[parsed.condition]}</p>
+                                  )}
+                                  {parsed?.notes && (
+                                    <p className="text-xs text-gray-400 italic mt-0.5">"{parsed.notes}"</p>
+                                  )}
+                                </div>
+                              </div>
+                            );
+                          })}
+                        </div>
+
+                        {/* Incidents if any */}
+                        {a.incidents.length > 0 && (
+                          <div className="px-4 pb-3 flex items-center gap-1.5">
+                            <AlertTriangle size={12} className="text-red-500" />
+                            <p className="text-xs text-red-500">{a.incidents.length} incident{a.incidents.length > 1 ? 's' : ''} logged</p>
+                            <button onClick={() => setTab('Noted Issues')} className="text-xs text-brand-500 hover:underline ml-1">View →</button>
+                          </div>
+                        )}
+
+                        {/* Track link */}
+                        <div className="px-4 pb-3">
+                          <Link
+                            to={`/track/${a.trackingToken}`}
+                            className="text-xs text-brand-500 hover:underline flex items-center gap-1"
+                          >
+                            View full report <ChevronRight size={12} />
+                          </Link>
+                        </div>
+                      </div>
+                    );
+                  })}
+                </div>
+              )}
+
+              <p className="text-center text-xs text-gray-300 pb-4">TrustPaws by Heads Up For Tails</p>
+            </div>
+          );
+        })()}
 
         {/* ── NOTED ISSUES TAB ── */}
         {tab === 'Noted Issues' && (

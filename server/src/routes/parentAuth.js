@@ -60,7 +60,6 @@ router.get('/me', async (req, res) => {
           include: {
             appointments: {
               orderBy: { scheduledAt: 'desc' },
-              take: 10,
               include: {
                 staff: { select: { name: true } },
                 services: true,

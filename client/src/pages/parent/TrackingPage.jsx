@@ -140,17 +140,41 @@ export default function TrackingPage() {
         {appt.services.length > 0 && (
           <div className="card">
             <p className="text-sm font-medium text-gray-700 mb-3">Services</p>
-            <div className="space-y-2">
-              {appt.services.map((svc) => (
-                <div key={svc.id} className="flex items-center gap-2.5">
-                  {svc.completed
-                    ? <CheckSquare size={16} className="text-green-500 shrink-0" />
-                    : <Square size={16} className="text-gray-300 shrink-0" />}
-                  <span className={`text-sm ${svc.completed ? 'line-through text-gray-400' : 'text-gray-700'}`}>
-                    {svc.name}
-                  </span>
-                </div>
-              ))}
+            <div className="space-y-3">
+              {appt.services.map((svc) => {
+                let parsed = null;
+                try { parsed = svc.notes ? JSON.parse(svc.notes) : null; } catch { parsed = { notes: svc.notes }; }
+                return (
+                  <div key={svc.id}>
+                    <div className="flex items-center gap-2.5">
+                      {svc.completed
+                        ? <CheckSquare size={16} className="text-green-500 shrink-0" />
+                        : <Square size={16} className="text-gray-300 shrink-0" />}
+                      <span className={`text-sm ${svc.completed ? 'text-gray-600' : 'text-gray-700'}`}>
+                        {svc.name}
+                      </span>
+                      {svc.completedAt && (
+                        <span className="ml-auto text-xs text-gray-400">{format(new Date(svc.completedAt), 'h:mm a')}</span>
+                      )}
+                    </div>
+                    {svc.completed && parsed && (parsed.condition || parsed.notes) && (
+                      <div className="ml-7 mt-1 space-y-0.5">
+                        {parsed.condition && parsed.condition !== 'GOOD' && (
+                          <p className="text-xs text-amber-600">
+                            {parsed.condition === 'SENSITIVE' ? '⚠️ Sensitive area noted' : '🔴 Needs attention'}
+                          </p>
+                        )}
+                        {parsed.condition === 'GOOD' && (
+                          <p className="text-xs text-green-600">✅ All good</p>
+                        )}
+                        {parsed.notes && (
+                          <p className="text-xs text-gray-400 italic">"{parsed.notes}"</p>
+                        )}
+                      </div>
+                    )}
+                  </div>
+                );
+              })}
             </div>
           </div>
         )}

@@ -1,0 +1,139 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+model User {
+  id           String        @id @default(uuid())
+  name         String
+  email        String        @unique
+  password     String
+  role         Role          @default(STAFF)
+  createdAt    DateTime      @default(now())
+  appointments Appointment[]
+}
+
+enum Role {
+  ADMIN
+  STAFF
+}
+
+model Parent {
+  id        String   @id @default(uuid())
+  name      String
+  phone     String   @unique
+  email     String?
+  createdAt DateTime @default(now())
+  pets      Pet[]
+}
+
+model Pet {
+  id           String        @id @default(uuid())
+  name         String
+  breed        String?
+  species      String        @default("Dog")
+  age          Int?
+  weight       Float?
+  photoUrl     String?
+  notes        String?
+  parentId     String
+  parent       Parent        @relation(fields: [parentId], references: [id])
+  createdAt    DateTime      @default(now())
+  appointments Appointment[]
+}
+
+model Appointment {
+  id             String            @id @default(uuid())
+  petId          String
+  pet            Pet               @relation(fields: [petId], references: [id])
+  staffId        String?
+  staff          User?             @relation(fields: [staffId], references: [id])
+  status         AppointmentStatus @default(SCHEDULED)
+  notes          String?
+  scheduledAt    DateTime
+  completedAt    DateTime?
+  trackingToken  String            @unique @default(uuid())
+  createdAt      DateTime          @default(now())
+  services       AppointmentService[]
+  incidents      Incident[]
+  photos         Photo[]
+  clips          Clip[]
+}
+
+enum AppointmentStatus {
+  SCHEDULED
+  CHECKED_IN
+  BATHING
+  GROOMING
+  DRYING
+  READY
+  COMPLETED
+  CANCELLED
+}
+
+model AppointmentService {
+  id            String      @id @default(uuid())
+  appointmentId String
+  appointment   Appointment @relation(fields: [appointmentId], references: [id], onDelete: Cascade)
+  name          String
+  completed     Boolean     @default(false)
+  completedAt   DateTime?
+  notes         String?
+}
+
+model Incident {
+  id            String      @id @default(uuid())
+  appointmentId String
+  appointment   Appointment @relation(fields: [appointmentId], references: [id], onDelete: Cascade)
+  severity      Severity    @default(LOW)
+  title         String
+  description   String
+  actionTaken   String?
+  reportedAt    DateTime    @default(now())
+}
+
+enum Severity {
+  LOW
+  MEDIUM
+  HIGH
+}
+
+model Photo {
+  id            String      @id @default(uuid())
+  appointmentId String
+  appointment   Appointment @relation(fields: [appointmentId], references: [id], onDelete: Cascade)
+  url           String
+  type          PhotoType   @default(DURING)
+  caption       String?
+  uploadedAt    DateTime    @default(now())
+}
+
+enum PhotoType {
+  BEFORE
+  AFTER
+  DURING
+  INCIDENT
+}
+
+model Clip {
+  id            String      @id @default(uuid())
+  appointmentId String
+  appointment   Appointment @relation(fields: [appointmentId], references: [id], onDelete: Cascade)
+  url           String
+  triggerType   TriggerType
+  confidence    Float?
+  durationSec   Int?
+  reviewed      Boolean     @default(false)
+  incidentId    String?
+  createdAt     DateTime    @default(now())
+}
+
+enum TriggerType {
+  AUDIO_DISTRESS
+  MOTION_SPIKE
+  MANUAL
+}

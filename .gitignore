@@ -1,0 +1,11 @@
+node_modules/
+.env
+dist/
+uploads/clips/*.webm
+uploads/*.jpg
+uploads/*.jpeg
+uploads/*.png
+uploads/*.gif
+*.log
+.DS_Store
+prisma/migrations/

@@ -1,7 +1,7 @@
 import React, { useEffect, useState } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { format } from 'date-fns';
-import { CheckCircle, Circle, AlertTriangle, Clock, CheckSquare, Square, ArrowLeft } from 'lucide-react';
+import { CheckCircle, Circle, AlertTriangle, Clock, CheckSquare, Square, ArrowLeft, Video } from 'lucide-react';
 import api from '../../utils/api';
 import { STATUS_LABELS, STATUS_FLOW, SEVERITY_COLORS } from '../../utils/constants';
 
@@ -19,17 +19,25 @@ export default function TrackingPage() {
   const { token } = useParams();
   const navigate = useNavigate();
   const [appt, setAppt] = useState(null);
+  const [clips, setClips] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(false);
 
   useEffect(() => {
     api.get(`/track/${token}`)
-      .then((r) => setAppt(r.data))
+      .then((r) => {
+        setAppt(r.data);
+        // fetch clips for this appointment (public endpoint)
+        api.get(`/clips/public/${r.data.id}`).then((c) => setClips(c.data)).catch(() => {});
+      })
       .catch(() => setError(true))
       .finally(() => setLoading(false));
 
     const interval = setInterval(() => {
-      api.get(`/track/${token}`).then((r) => setAppt(r.data)).catch(() => {});
+      api.get(`/track/${token}`).then((r) => {
+        setAppt(r.data);
+        api.get(`/clips/public/${r.data.id}`).then((c) => setClips(c.data)).catch(() => {});
+      }).catch(() => {});
     }, 30000);
     return () => clearInterval(interval);
   }, [token]);
@@ -222,6 +230,39 @@ export default function TrackingPage() {
                 <div key={p.id} className="relative">
                   <img src={p.url} alt={p.type} className="w-full h-36 object-cover rounded-lg" />
                   <span className="absolute bottom-1 left-1 badge bg-black/50 text-white text-xs">{p.type}</span>
+                </div>
+              ))}
+            </div>
+          </div>
+        )}
+
+        {/* Recorded Clips */}
+        {clips.length > 0 && (
+          <div className="card">
+            <div className="flex items-center gap-2 mb-3">
+              <Video size={15} className="text-gray-500" />
+              <p className="text-sm font-medium text-gray-700">Recorded Clips</p>
+              <span className="text-xs text-gray-400">— saved during monitoring</span>
+            </div>
+            <div className="bg-amber-50 border border-amber-200 rounded-lg px-3 py-2 text-xs text-amber-700 mb-3">
+              Our team monitors your pet using audio and motion detection. Clips are saved automatically if any distress signals are detected.
+            </div>
+            <div className="space-y-3">
+              {clips.map((clip) => (
+                <div key={clip.id} className="space-y-1">
+                  <div className="flex items-center justify-between">
+                    <p className="text-xs font-medium text-gray-600">
+                      {clip.triggerType === 'AUDIO_DISTRESS' ? '🔊 Audio distress detected' :
+                       clip.triggerType === 'MOTION_SPIKE'   ? '⚡ Motion spike detected' :
+                       '📹 Manual clip'}
+                    </p>
+                    <p className="text-xs text-gray-400">{format(new Date(clip.createdAt), 'h:mm a')}</p>
+                  </div>
+                  <video
+                    src={clip.url}
+                    controls
+                    className="w-full rounded-lg bg-black max-h-48"
+                  />
                 </div>
               ))}
             </div>

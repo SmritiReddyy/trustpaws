@@ -29,6 +29,20 @@ router.get('/appointment/:appointmentId', authenticate, async (req, res) => {
   }
 });
 
+// Public route — accessible via tracking token (no auth needed)
+router.get('/public/:appointmentId', async (req, res) => {
+  try {
+    const clips = await prisma.clip.findMany({
+      where: { appointmentId: req.params.appointmentId },
+      orderBy: { createdAt: 'desc' },
+      select: { id: true, url: true, triggerType: true, durationSec: true, createdAt: true },
+    });
+    res.json(clips);
+  } catch (err) {
+    res.status(500).json({ error: err.message });
+  }
+});
+
 router.post('/', authenticate, upload.single('clip'), async (req, res) => {
   const { appointmentId, triggerType, confidence, durationSec } = req.body;
   try {

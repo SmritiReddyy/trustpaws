@@ -1,0 +1,12 @@
+<!DOCTYPE html>
+<html>
+  <head>
+    <meta charset="utf-8" />
+    <script>
+      // Redirect to the app with the path encoded as a query param
+      var path = window.location.pathname.replace('/trustpaws', '') + window.location.search;
+      window.location.replace('/trustpaws/?redirect=' + encodeURIComponent(path));
+    </script>
+  </head>
+  <body></body>
+</html>

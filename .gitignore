@@ -9,3 +9,6 @@ uploads/*.gif
 *.log
 .DS_Store
 prisma/migrations/
+generate_manual.py
+TrustPaws_Instruction_Manual.docx
+*.png

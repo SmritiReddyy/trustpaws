@@ -36,12 +36,14 @@ const ok   = (data)    => ({ data });
 const fail = (msg, status = 400) => { const e = new Error(msg); e.response = { data: { error: msg }, status }; throw e; };
 
 // ── Auth ──────────────────────────────────────────────────────────────────────
+// Session state — avoids any token encoding/decoding issues in mock mode
+let _loggedInParentId = null;
+
 async function staffLogin({ email, password }) {
   await delay();
   const user = MOCK_USERS.find((u) => u.email === email && u.password === password);
   if (!user) fail('Invalid email or password', 401);
-  const token = btoa(JSON.stringify({ id: user.id, name: user.name, email: user.email, role: user.role }));
-  return ok({ token, user: { id: user.id, name: user.name, email: user.email, role: user.role } });
+  return ok({ token: `STAFF_${user.id}`, user: { id: user.id, name: user.name, email: user.email, role: user.role } });
 }
 
 async function parentLogin({ phone, pin }) {
@@ -49,14 +51,17 @@ async function parentLogin({ phone, pin }) {
   const parent = parents.find((p) => p.phone === phone);
   if (!parent) fail('Invalid phone number or PIN not set.', 401);
   if (String(parent.pin) !== String(pin)) fail('Incorrect PIN', 401);
-  const token = btoa(JSON.stringify({ id: parent.id, name: parent.name, phone: parent.phone, role: 'PARENT' }));
-  return ok({ token, parent: { id: parent.id, name: parent.name, phone: parent.phone, email: parent.email } });
+  _loggedInParentId = parent.id;
+  return ok({ token: `PARENT_${parent.id}`, parent: { id: parent.id, name: parent.name, phone: parent.phone, email: parent.email } });
 }
 
 async function parentMe(token) {
   await delay();
-  const decoded = JSON.parse(atob(token));
-  const parent = parents.find((p) => p.id === decoded.id);
+  // Resolve parent id from token string or fallback to session variable
+  let id = _loggedInParentId;
+  if (!id && token?.startsWith('PARENT_')) id = token.replace('PARENT_', '');
+  if (!id) fail('Not logged in', 401);
+  const parent = parents.find((p) => p.id === id);
   if (!parent) fail('Not found', 404);
   const parentPets = pets
     .filter((p) => p.parentId === parent.id)
@@ -232,7 +237,8 @@ export async function mockRequest(method, url, data) {
   if (m === 'POST' && path === '/auth/login')            return staffLogin(data);
   if (m === 'POST' && path === '/parent-auth/login')     return parentLogin(data);
   if (m === 'GET'  && path === '/parent-auth/me')        {
-    const token = data?.__token;
+    // Try __token (passed via handler), then localStorage parent_token
+    const token = data?.__token || (typeof localStorage !== 'undefined' ? localStorage.getItem('parent_token') : null);
     return parentMe(token);
   }
   if (m === 'POST' && path === '/parent-auth/set-pin')   return setPin(data);

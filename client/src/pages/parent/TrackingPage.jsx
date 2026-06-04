@@ -5,6 +5,9 @@ import { CheckCircle, Circle, AlertTriangle, Clock, CheckSquare, Square, ArrowLe
 import api from '../../utils/api';
 import { STATUS_LABELS, STATUS_FLOW, SEVERITY_COLORS } from '../../utils/constants';
 
+const API_URL = import.meta.env.VITE_API_URL || '';
+const mediaUrl = (path) => path?.startsWith('http') ? path : `${API_URL}${path}`;
+
 const STAGE_ICONS = {
   SCHEDULED:  '📅',
   CHECKED_IN: '🏥',
@@ -228,7 +231,7 @@ export default function TrackingPage() {
             <div className="grid grid-cols-2 gap-2">
               {appt.photos.map((p) => (
                 <div key={p.id} className="relative">
-                  <img src={p.url} alt={p.type} className="w-full h-36 object-cover rounded-lg" />
+                  <img src={mediaUrl(p.url)} alt={p.type} className="w-full h-36 object-cover rounded-lg" />
                   <span className="absolute bottom-1 left-1 badge bg-black/50 text-white text-xs">{p.type}</span>
                 </div>
               ))}
@@ -259,7 +262,7 @@ export default function TrackingPage() {
                     <p className="text-xs text-gray-400">{format(new Date(clip.createdAt), 'h:mm a')}</p>
                   </div>
                   <video
-                    src={clip.url}
+                    src={mediaUrl(clip.url)}
                     controls
                     className="w-full rounded-lg bg-black max-h-48"
                   />

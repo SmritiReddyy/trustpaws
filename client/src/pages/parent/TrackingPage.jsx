@@ -1,7 +1,7 @@
 import React, { useEffect, useState } from 'react';
-import { useParams } from 'react-router-dom';
+import { useParams, useNavigate } from 'react-router-dom';
 import { format } from 'date-fns';
-import { CheckCircle, Circle, AlertTriangle, Clock, CheckSquare, Square } from 'lucide-react';
+import { CheckCircle, Circle, AlertTriangle, Clock, CheckSquare, Square, ArrowLeft } from 'lucide-react';
 import api from '../../utils/api';
 import { STATUS_LABELS, STATUS_FLOW, SEVERITY_COLORS } from '../../utils/constants';
 
@@ -17,6 +17,7 @@ const STAGE_ICONS = {
 
 export default function TrackingPage() {
   const { token } = useParams();
+  const navigate = useNavigate();
   const [appt, setAppt] = useState(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(false);
@@ -66,6 +67,12 @@ export default function TrackingPage() {
       {/* Header */}
       <div className="bg-white border-b border-gray-100 px-4 py-4">
         <div className="max-w-md mx-auto flex items-center gap-3">
+          <button
+            onClick={() => navigate(-1)}
+            className="text-gray-400 hover:text-gray-600 transition-colors mr-1"
+          >
+            <ArrowLeft size={20} />
+          </button>
           <span className="text-2xl">🐾</span>
           <div>
             <p className="font-bold text-gray-900">TrustPaws</p>

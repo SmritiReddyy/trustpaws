@@ -1,7 +1,7 @@
 import axios from 'axios';
 import { mockRequest } from './mockApi';
 
-const MOCK = true; // flip to false when real backend is ready
+const MOCK = false; // flip to false when real backend is ready
 
 // ── Mock adapter ──────────────────────────────────────────────────────────────
 function buildMockApi() {
@@ -58,7 +58,7 @@ function buildMockApi() {
 }
 
 // ── Real axios instance ───────────────────────────────────────────────────────
-const realApi = axios.create({ baseURL: '/api' });
+const realApi = axios.create({ baseURL: `${import.meta.env.VITE_API_URL || ''}/api` });
 
 realApi.interceptors.request.use((config) => {
   const token = localStorage.getItem('token');

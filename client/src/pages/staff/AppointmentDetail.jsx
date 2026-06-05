@@ -19,7 +19,7 @@ export default function AppointmentDetail() {
   const [incident, setIncident] = useState({ title: '', description: '', actionTaken: '', severity: 'LOW' });
   const [saving, setSaving] = useState(false);
   const [completingService, setCompletingService] = useState(null); // service being completed
-  const [serviceForm, setServiceForm] = useState({ condition: 'GOOD', notes: '' });
+  const [serviceForm, setServiceForm] = useState({ condition: 'GOOD', notes: '', cameraNumber: '' });
   const fileRef = useRef();
 
   const load = () => api.get(`/appointments/${id}`).then((r) => setAppt(r.data));

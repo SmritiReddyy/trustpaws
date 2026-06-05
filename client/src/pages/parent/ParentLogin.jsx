@@ -40,9 +40,9 @@ export default function ParentLogin() {
             <span className="font-semibold text-amber-700">PIN</span>
           </div>
           {[
-            { label: 'Parent 1', phone: '9999999999', pin: '1234' },
-            { label: 'Parent 2', phone: '8888888888', pin: '1234' },
-            { label: 'Parent 3', phone: '7777777777', pin: '1234' },
+            { label: 'Rahul Verma', phone: '9999999999', pin: '1234' },
+            { label: 'Meera Nair', phone: '8888888888', pin: '1234' },
+            { label: 'Arjun Kapoor', phone: '7777777777', pin: '1234' },
           ].map(({ label, phone, pin }) => (
             <button
               key={phone}

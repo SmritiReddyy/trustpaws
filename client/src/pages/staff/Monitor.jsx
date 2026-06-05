@@ -25,15 +25,13 @@ function DemoCameraFeed() {
         </span>
       </div>
       <div className="relative bg-gray-900 rounded-lg overflow-hidden" style={{ aspectRatio: '16/9' }}>
-        <video
-          src="https://commondatastorage.googleapis.com/gtv-videos-bucket/sample/ForBiggerFun.mp4"
-          autoPlay
-          loop
-          muted
-          playsInline
-          className="w-full h-full object-cover"
+        <iframe
+          src="https://drive.google.com/file/d/1KBgwb0YzKcnmWA6ggTkyOAMYyTL5_Qu5/preview"
+          className="w-full h-full"
+          allow="autoplay"
+          style={{ border: 'none' }}
         />
-        <div className="absolute top-2 left-2 bg-black/60 text-white text-xs px-2 py-1 rounded-md flex items-center gap-1.5">
+        <div className="absolute top-2 left-2 bg-black/60 text-white text-xs px-2 py-1 rounded-md flex items-center gap-1.5 pointer-events-none">
           <span className="w-1.5 h-1.5 bg-red-500 rounded-full animate-pulse" />
           CAM 1 — Grooming Bay
         </div>

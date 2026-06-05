@@ -25,11 +25,13 @@ function DemoCameraFeed() {
         </span>
       </div>
       <div className="relative bg-gray-900 rounded-lg overflow-hidden" style={{ aspectRatio: '16/9' }}>
-        <iframe
-          src="https://drive.google.com/file/d/1KBgwb0YzKcnmWA6ggTkyOAMYyTL5_Qu5/preview"
-          className="w-full h-full"
-          allow="autoplay"
-          style={{ border: 'none' }}
+        <video
+          src="/trustpaws/demo-cam.mp4"
+          autoPlay
+          loop
+          muted
+          playsInline
+          className="w-full h-full object-cover"
         />
         <div className="absolute top-2 left-2 bg-black/60 text-white text-xs px-2 py-1 rounded-md flex items-center gap-1.5 pointer-events-none">
           <span className="w-1.5 h-1.5 bg-red-500 rounded-full animate-pulse" />

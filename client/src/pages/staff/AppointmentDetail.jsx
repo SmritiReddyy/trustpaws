@@ -344,7 +344,7 @@ export default function AppointmentDetail() {
             </div>
           </div>
           <div>
-            <label className="label">Camera / Room Number <span className="text-gray-400 font-normal">(optional)</span></label>
+            <label className="label">Camera / Room Number <span className="text-red-400 font-normal">*</span></label>
             <input
               className="input"
               placeholder="e.g. Camera 3 or Room B"
@@ -365,8 +365,8 @@ export default function AppointmentDetail() {
           </div>
           <button
             onClick={submitServiceCompletion}
-            disabled={saving}
-            className="btn-primary w-full"
+            disabled={saving || !serviceForm.cameraNumber.trim()}
+            className="btn-primary w-full disabled:opacity-40"
           >
             {saving ? 'Saving…' : 'Mark Complete'}
           </button>

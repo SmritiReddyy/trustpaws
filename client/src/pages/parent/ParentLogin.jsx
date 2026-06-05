@@ -32,6 +32,36 @@ export default function ParentLogin() {
           <p className="text-gray-500 text-sm mt-1">Pet Parent Portal</p>
         </div>
 
+        {/* Demo credentials */}
+        <div className="mb-6 rounded-xl border border-amber-200 bg-amber-50 p-3 space-y-2">
+          <p className="text-xs font-semibold text-amber-700 uppercase tracking-wide">Demo credentials</p>
+          <div className="grid grid-cols-2 gap-1.5 text-xs px-1 pb-0.5">
+            <span className="font-semibold text-amber-700">Phone</span>
+            <span className="font-semibold text-amber-700">PIN</span>
+          </div>
+          {[
+            { label: 'Parent 1', phone: '9999999999', pin: '1234' },
+            { label: 'Parent 2', phone: '8888888888', pin: '1234' },
+            { label: 'Parent 3', phone: '7777777777', pin: '1234' },
+          ].map(({ label, phone, pin }) => (
+            <button
+              key={phone}
+              type="button"
+              onClick={() => setForm({ phone, pin })}
+              className="w-full text-left bg-white rounded-lg px-3 py-2 border border-amber-100 hover:border-amber-300 transition-colors group"
+            >
+              <div className="flex items-center justify-between gap-2">
+                <span className="text-xs font-medium text-amber-800">{label}</span>
+                <span className="text-xs text-amber-400 opacity-0 group-hover:opacity-100 transition-opacity">tap to fill</span>
+              </div>
+              <div className="grid grid-cols-2 gap-1 text-xs text-gray-500 font-mono mt-0.5">
+                <span>{phone}</span>
+                <span>{pin}</span>
+              </div>
+            </button>
+          ))}
+        </div>
+
         <form onSubmit={handleSubmit} className="space-y-4">
           <div>
             <label className="label">Mobile Number</label>

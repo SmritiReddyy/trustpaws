@@ -88,10 +88,13 @@ export default function Login() {
           </button>
         </form>
 
-        <p className="text-center text-xs text-gray-400 mt-6">
-          <Link to="/parent/login" className="text-brand-500 hover:underline">Parent portal →</Link>
-        </p>
-        <p className="text-center text-xs text-gray-400 mt-2">
+        <Link
+          to="/parent/login"
+          className="mt-5 flex items-center justify-center gap-2 w-full py-3 rounded-xl border-2 border-brand-200 text-brand-600 font-medium text-sm hover:bg-brand-50 transition-colors"
+        >
+          🐾 Pet Parent? Sign in here →
+        </Link>
+        <p className="text-center text-xs text-gray-300 mt-4">
           Heads Up For Tails · TrustPaws
         </p>
       </div>

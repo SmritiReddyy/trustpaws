@@ -93,12 +93,13 @@ export default function ParentLogin() {
           </button>
         </form>
 
-        <div className="mt-6 text-center space-y-2">
-          <p className="text-xs text-gray-400">Staff member?{' '}
-            <Link to="/login" className="text-brand-500 hover:underline">Staff login →</Link>
-          </p>
-          <p className="text-xs text-gray-300">Heads Up For Tails · TrustPaws</p>
-        </div>
+        <Link
+          to="/login"
+          className="mt-5 flex items-center justify-center gap-2 w-full py-3 rounded-xl border-2 border-brand-200 text-brand-600 font-medium text-sm hover:bg-brand-50 transition-colors"
+        >
+          ✂️ Staff member? Sign in here →
+        </Link>
+        <p className="text-center text-xs text-gray-300 mt-4">Heads Up For Tails · TrustPaws</p>
       </div>
     </div>
   );

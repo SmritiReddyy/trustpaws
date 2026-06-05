@@ -324,6 +324,9 @@ export default function ParentPortal() {
                                   {parsed?.condition && parsed.condition !== 'GOOD' && (
                                     <p className="text-xs text-amber-600">{CONDITION_LABELS[parsed.condition]}</p>
                                   )}
+                                  {parsed?.cameraNumber && (
+                                    <p className="text-xs text-brand-600">📷 {parsed.cameraNumber}</p>
+                                  )}
                                   {parsed?.notes && (
                                     <p className="text-xs text-gray-400 italic mt-0.5">"{parsed.notes}"</p>
                                   )}

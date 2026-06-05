@@ -175,7 +175,7 @@ export default function TrackingPage() {
                         <span className="ml-auto text-xs text-gray-400">{format(new Date(svc.completedAt), 'h:mm a')}</span>
                       )}
                     </div>
-                    {svc.completed && parsed && (parsed.condition || parsed.notes) && (
+                    {svc.completed && parsed && (parsed.condition || parsed.notes || parsed.cameraNumber) && (
                       <div className="ml-7 mt-1 space-y-0.5">
                         {parsed.condition && parsed.condition !== 'GOOD' && (
                           <p className="text-xs text-amber-600">
@@ -184,6 +184,9 @@ export default function TrackingPage() {
                         )}
                         {parsed.condition === 'GOOD' && (
                           <p className="text-xs text-green-600">✅ All good</p>
+                        )}
+                        {parsed.cameraNumber && (
+                          <p className="text-xs text-brand-600 font-medium">📷 {parsed.cameraNumber} — footage available below</p>
                         )}
                         {parsed.notes && (
                           <p className="text-xs text-gray-400 italic">"{parsed.notes}"</p>

@@ -12,6 +12,37 @@ import { useVideoMonitor }   from '../../hooks/useVideoMonitor';
 
 const COOLDOWN_MS = 12000; // min gap between auto-saves
 
+function DemoCameraFeed() {
+  return (
+    <div className="card space-y-3">
+      <div className="flex items-center justify-between">
+        <p className="text-sm font-medium text-gray-700 flex items-center gap-2">
+          <Video size={15} /> Demo Camera Feed
+        </p>
+        <span className="flex items-center gap-1 text-xs text-green-600">
+          <span className="w-2 h-2 bg-green-500 rounded-full animate-pulse" />
+          LIVE
+        </span>
+      </div>
+      <div className="relative bg-gray-900 rounded-lg overflow-hidden" style={{ aspectRatio: '16/9' }}>
+        <video
+          src="https://commondatastorage.googleapis.com/gtv-videos-bucket/sample/ForBiggerFun.mp4"
+          autoPlay
+          loop
+          muted
+          playsInline
+          className="w-full h-full object-cover"
+        />
+        <div className="absolute top-2 left-2 bg-black/60 text-white text-xs px-2 py-1 rounded-md flex items-center gap-1.5">
+          <span className="w-1.5 h-1.5 bg-red-500 rounded-full animate-pulse" />
+          CAM 1 — Grooming Bay
+        </div>
+      </div>
+      <p className="text-xs text-gray-400">Demo footage — live camera feed will replace this during an active session.</p>
+    </div>
+  );
+}
+
 export default function Monitor() {
   const { id } = useParams();
   const [appt,        setAppt]        = useState(null);
@@ -119,7 +150,16 @@ export default function Monitor() {
   };
 
   if (loading) return <div className="card text-center py-10 text-gray-400">Loading…</div>;
-  if (!appt)   return <div className="card text-center py-10 text-red-400">Appointment not found</div>;
+  if (!appt) return (
+    <div className="max-w-3xl mx-auto space-y-4">
+      <div className="flex items-center gap-3">
+        <Link to="/appointments" className="text-gray-500 hover:text-gray-700"><ArrowLeft size={20} /></Link>
+        <h1 className="text-lg font-bold text-gray-900">Live Monitor</h1>
+      </div>
+      <DemoCameraFeed />
+      <div className="card text-center py-6 text-red-400">Appointment not found</div>
+    </div>
+  );
 
   const unreviewed = clips.filter((c) => !c.reviewed);
 
@@ -166,6 +206,8 @@ export default function Monitor() {
           </button>
         </div>
       )}
+
+      <DemoCameraFeed />
 
       <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
         {/* Video feed */}

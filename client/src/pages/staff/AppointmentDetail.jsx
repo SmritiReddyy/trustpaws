@@ -45,7 +45,7 @@ export default function AppointmentDetail() {
       // Completing — open the form
       const svc = appt.services.find((s) => s.id === svcId);
       setCompletingService(svc);
-      setServiceForm({ condition: 'GOOD', notes: '' });
+      setServiceForm({ condition: 'GOOD', notes: '', cameraNumber: '' });
     }
   };
 
@@ -53,7 +53,11 @@ export default function AppointmentDetail() {
     if (!completingService) return;
     setSaving(true);
     try {
-      const notesPayload = JSON.stringify({ condition: serviceForm.condition, notes: serviceForm.notes });
+      const notesPayload = JSON.stringify({
+        condition: serviceForm.condition,
+        notes: serviceForm.notes,
+        cameraNumber: serviceForm.cameraNumber,
+      });
       await api.patch(`/appointments/${id}/service/${completingService.id}`, {
         completed: true,
         notes: notesPayload,
@@ -218,6 +222,9 @@ export default function AppointmentDetail() {
                     {parsed.condition && (
                       <p className="text-xs text-gray-500">{CONDITION_LABELS[parsed.condition] || parsed.condition}</p>
                     )}
+                    {parsed.cameraNumber && (
+                      <p className="text-xs text-brand-600">📷 {parsed.cameraNumber}</p>
+                    )}
                     {parsed.notes && (
                       <p className="text-xs text-gray-400 italic">"{parsed.notes}"</p>
                     )}
@@ -335,6 +342,16 @@ export default function AppointmentDetail() {
                 </button>
               ))}
             </div>
+          </div>
+          <div>
+            <label className="label">Camera / Room Number <span className="text-gray-400 font-normal">(optional)</span></label>
+            <input
+              className="input"
+              placeholder="e.g. Camera 3 or Room B"
+              value={serviceForm.cameraNumber}
+              onChange={(e) => setServiceForm((f) => ({ ...f, cameraNumber: e.target.value }))}
+            />
+            <p className="text-xs text-gray-400 mt-1">Pet parent will be able to see the camera footage for this location.</p>
           </div>
           <div>
             <label className="label">Observations <span className="text-gray-400 font-normal">(optional)</span></label>

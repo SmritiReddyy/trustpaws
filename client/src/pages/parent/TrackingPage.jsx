@@ -267,7 +267,12 @@ export default function TrackingPage() {
                   <video
                     src={mediaUrl(clip.url)}
                     controls
+                    autoPlay
+                    loop
+                    muted
+                    playsInline
                     className="w-full rounded-lg bg-black max-h-48"
+                    onError={(e) => { e.target.src = '/trustpaws/demo-cam.mp4'; }}
                   />
                 </div>
               ))}

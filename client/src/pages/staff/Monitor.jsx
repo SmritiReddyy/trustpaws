@@ -438,7 +438,12 @@ export default function Monitor() {
                   <video
                     src={clip.url}
                     controls
+                    autoPlay
+                    loop
+                    muted
+                    playsInline
                     className="mt-2 w-full rounded-lg max-h-48 bg-black"
+                    onError={(e) => { e.target.src = '/trustpaws/demo-cam.mp4'; }}
                   />
                 </div>
                 <div className="flex flex-col gap-1 shrink-0">

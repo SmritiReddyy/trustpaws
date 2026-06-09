@@ -14,7 +14,7 @@ const COOLDOWN_MS = 12000;
 const COMMENTARY_INTERVAL_MS = 30000;
 const MAX_UPDATES = 20;
 const SYSTEM_PROMPT =
-  'You are an AI assistant monitoring a pet grooming session via camera. Always describe what you see in the image in 1-2 short plain sentences — even if no dog or groomer is clearly visible, describe the scene (person, room, activity). Never say you are unable to observe. Be calm and factual, written for a pet parent. If audio events are provided, incorporate them naturally.';
+  'You are a live camera monitor for a pet grooming app. Describe exactly what you see in the image in 1-2 short plain sentences. Do not ask questions. Do not say the image is wrong or unexpected. Just describe what is visible — the person, animal, room, or activity — as a factual status update for a pet parent. If audio events are provided, mention them naturally.';
 
 // Returns { text, provider }
 async function fetchFromGemini(base64Image, eventsText) {
@@ -85,36 +85,6 @@ async function fetchCommentary(base64Image, recentEvents) {
   }
 }
 
-// Legacy single-provider shape kept for reference only
-async function _fetchCommentaryClaudeOnly(base64Image, recentEvents) {
-  const eventsText = recentEvents.length
-    ? recentEvents.map((e) => e.description).join('; ')
-    : 'none';
-  const resp = await fetch('https://api.anthropic.com/v1/messages', {
-    method: 'POST',
-    headers: {
-      'Content-Type': 'application/json',
-      'x-api-key': import.meta.env.VITE_ANTHROPIC_API_KEY,
-      'anthropic-version': '2023-06-01',
-      'anthropic-dangerous-direct-browser-access': 'true',
-    },
-    body: JSON.stringify({
-      model: 'claude-haiku-4-5',
-      max_tokens: 300,
-      system: SYSTEM_PROMPT,
-      messages: [{
-        role: 'user',
-        content: [
-          { type: 'image', source: { type: 'base64', media_type: 'image/jpeg', data: base64Image } },
-          { type: 'text', text: `Recent events in the last 30s: ${eventsText}` },
-        ],
-      }],
-    }),
-  });
-  if (!resp.ok) throw new Error(`Anthropic API ${resp.status}`);
-  const data = await resp.json();
-  return { text: data.content?.[0]?.text ?? '', provider: 'Claude Haiku' };
-}
 
 
 export default function Monitor() {

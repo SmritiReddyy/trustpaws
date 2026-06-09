@@ -127,39 +127,43 @@ export default function Monitor() {
   // stop on unmount
   useEffect(() => () => { audio.stop(); video.stop(); }, []);
 
-  // AI commentary interval
+  // AI commentary — capture frame + call Gemini
+  const runCommentary = useCallback(async () => {
+    const videoEl = video.videoRef.current;
+    const canvas  = commentaryCanvasRef.current;
+    if (!videoEl || !canvas || videoEl.readyState < 2) return;
+
+    canvas.width  = 320;
+    canvas.height = 240;
+    canvas.getContext('2d').drawImage(videoEl, 0, 0, 320, 240);
+    const dataUrl = canvas.toDataURL('image/jpeg', 0.7);
+    const base64  = dataUrl.replace(/^data:image\/jpeg;base64,/, '');
+
+    const now = Date.now();
+    const window30s = recentEventsRef.current.filter((e) => now - e.time <= 30000);
+    recentEventsRef.current = window30s;
+
+    setAnalyzing(true);
+    try {
+      const text = await fetchCommentary(base64, window30s);
+      if (!text) return;
+      const timestamp = format(new Date(), 'HH:mm');
+      setSessionUpdates((prev) => [{ time: timestamp, text }, ...prev].slice(0, MAX_UPDATES));
+    } catch (err) {
+      console.error('[Session Updates] Gemini API error:', err);
+    } finally {
+      setAnalyzing(false);
+    }
+  }, [video.videoRef]);
+
+  // AI commentary interval — fire immediately, then every 30s
   useEffect(() => {
     if (!monitoring) return;
-    const intervalId = setInterval(async () => {
-      const videoEl = video.videoRef.current;
-      const canvas  = commentaryCanvasRef.current;
-      if (!videoEl || !canvas || videoEl.readyState < 2) return;
-
-      canvas.width  = 320;
-      canvas.height = 240;
-      canvas.getContext('2d').drawImage(videoEl, 0, 0, 320, 240);
-      const dataUrl  = canvas.toDataURL('image/jpeg', 0.7);
-      const base64   = dataUrl.replace(/^data:image\/jpeg;base64,/, '');
-
-      const now = Date.now();
-      const window30s = recentEventsRef.current.filter((e) => now - e.time <= 30000);
-      recentEventsRef.current = window30s;
-
-      setAnalyzing(true);
-      try {
-        const text = await fetchCommentary(base64, window30s);
-        if (!text) return;
-        const timestamp = format(new Date(), 'HH:mm');
-        setSessionUpdates((prev) => [{ time: timestamp, text }, ...prev].slice(0, MAX_UPDATES));
-      } catch {
-        // silently skip on failure
-      } finally {
-        setAnalyzing(false);
-      }
-    }, COMMENTARY_INTERVAL_MS);
-
-    return () => clearInterval(intervalId);
-  }, [monitoring, video.videoRef]);
+    // slight delay so video element is ready after start
+    const firstTimeout = setTimeout(() => runCommentary(), 3000);
+    const intervalId   = setInterval(() => runCommentary(), COMMENTARY_INTERVAL_MS);
+    return () => { clearTimeout(firstTimeout); clearInterval(intervalId); };
+  }, [monitoring, runCommentary]);
 
   // ── Manual clip save ──────────────────────────────────────────────────────
   const saveManualClip = useCallback(async () => {
@@ -391,18 +395,25 @@ export default function Monitor() {
           <p className="text-sm font-medium text-gray-200 flex items-center gap-2">
             <Bot size={15} className="text-brand-400" /> Session Updates
           </p>
-          {analyzing && (
-            <span className="text-xs text-gray-400 animate-pulse">Analyzing…</span>
-          )}
-          {monitoring && !analyzing && (
-            <span className="text-xs text-gray-500">every 30s</span>
-          )}
+          <div className="flex items-center gap-2">
+            {analyzing && (
+              <span className="text-xs text-gray-400 animate-pulse">Analyzing…</span>
+            )}
+            {monitoring && !analyzing && (
+              <button
+                onClick={runCommentary}
+                className="text-xs text-gray-400 hover:text-gray-200 underline underline-offset-2"
+              >
+                Analyze now
+              </button>
+            )}
+          </div>
         </div>
 
         {sessionUpdates.length === 0 ? (
           <p className="text-xs text-gray-500 text-center py-4">
             {monitoring
-              ? 'First update in ~30 seconds…'
+              ? 'First update in a few seconds…'
               : 'Start monitoring to receive AI commentary.'}
           </p>
         ) : (

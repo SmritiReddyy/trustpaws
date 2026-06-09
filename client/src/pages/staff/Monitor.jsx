@@ -13,7 +13,7 @@ import { useVideoMonitor }   from '../../hooks/useVideoMonitor';
 const COOLDOWN_MS = 12000;
 const COMMENTARY_INTERVAL_MS = 30000;
 const MAX_UPDATES = 20;
-const GEMINI_MODEL = 'gemini-2.0-flash';
+const GEMINI_MODEL = 'gemini-2.5-flash';
 const SYSTEM_PROMPT =
   'You are an AI assistant monitoring a dog grooming session via camera. Describe what you observe in 1-2 short plain sentences. Focus on the dog\'s activity and the groomer\'s actions. If audio events are provided, incorporate them naturally. Be calm and factual, written for a pet parent.';
 

@@ -14,37 +14,79 @@ const COOLDOWN_MS = 12000;
 const COMMENTARY_INTERVAL_MS = 30000;
 const MAX_UPDATES = 20;
 const SYSTEM_PROMPT =
-  'You are an AI assistant monitoring a dog grooming session via camera. Describe what you observe in 1-2 short plain sentences. Focus on the dog\'s activity and the groomer\'s actions. If audio events are provided, incorporate them naturally. Be calm and factual, written for a pet parent.';
+  'You are an AI assistant monitoring a pet grooming session via camera. Always describe what you see in the image in 1-2 short plain sentences — even if no dog or groomer is clearly visible, describe the scene (person, room, activity). Never say you are unable to observe. Be calm and factual, written for a pet parent. If audio events are provided, incorporate them naturally.';
 
-/* GEMINI IMPLEMENTATION — commented out, swap back if needed
-const GEMINI_MODEL = 'gemini-2.5-flash';
+// Returns { text, provider }
+async function fetchFromGemini(base64Image, eventsText) {
+  const apiKey = import.meta.env.VITE_GEMINI_API_KEY;
+  // Try 2.5 Flash Lite first (10 RPM), fall back to 3.1 Flash Lite (15 RPM)
+  const models = ['gemini-2.5-flash-lite', 'gemini-3.1-flash-lite'];
+  for (const model of models) {
+    const url = `https://generativelanguage.googleapis.com/v1beta/models/${model}:generateContent?key=${apiKey}`;
+    const resp = await fetch(url, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        systemInstruction: { parts: [{ text: SYSTEM_PROMPT }] },
+        contents: [{ parts: [
+          { inline_data: { mime_type: 'image/jpeg', data: base64Image } },
+          { text: `Recent events in the last 30s: ${eventsText}` },
+        ]}],
+        generationConfig: { maxOutputTokens: 300 },
+      }),
+    });
+    if (resp.ok) {
+      const data = await resp.json();
+      const text = data.candidates?.[0]?.content?.parts?.[0]?.text ?? '';
+      if (text) return { text, provider: `Gemini · ${model}` };
+    }
+    console.warn(`[Session Updates] ${model} failed (${resp.status}), trying next…`);
+  }
+  throw new Error('All Gemini models failed');
+}
+
+async function fetchFromClaude(base64Image, eventsText) {
+  const resp = await fetch('https://api.anthropic.com/v1/messages', {
+    method: 'POST',
+    headers: {
+      'Content-Type': 'application/json',
+      'x-api-key': import.meta.env.VITE_ANTHROPIC_API_KEY,
+      'anthropic-version': '2023-06-01',
+      'anthropic-dangerous-direct-browser-access': 'true',
+    },
+    body: JSON.stringify({
+      model: 'claude-haiku-4-5',
+      max_tokens: 300,
+      system: SYSTEM_PROMPT,
+      messages: [{
+        role: 'user',
+        content: [
+          { type: 'image', source: { type: 'base64', media_type: 'image/jpeg', data: base64Image } },
+          { type: 'text', text: `Recent events in the last 30s: ${eventsText}` },
+        ],
+      }],
+    }),
+  });
+  if (!resp.ok) throw new Error(`Claude API ${resp.status}`);
+  const data = await resp.json();
+  const text = data.content?.[0]?.text ?? '';
+  return { text, provider: 'Claude Haiku' };
+}
+
 async function fetchCommentary(base64Image, recentEvents) {
   const eventsText = recentEvents.length
     ? recentEvents.map((e) => e.description).join('; ')
     : 'none';
-  const apiKey = import.meta.env.VITE_GEMINI_API_KEY;
-  const url = `https://generativelanguage.googleapis.com/v1beta/models/${GEMINI_MODEL}:generateContent?key=${apiKey}`;
-  const resp = await fetch(url, {
-    method: 'POST',
-    headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify({
-      systemInstruction: { parts: [{ text: SYSTEM_PROMPT }] },
-      contents: [{
-        parts: [
-          { inline_data: { mime_type: 'image/jpeg', data: base64Image } },
-          { text: `Recent events in the last 30s: ${eventsText}` },
-        ],
-      }],
-      generationConfig: { maxOutputTokens: 150 },
-    }),
-  });
-  if (!resp.ok) throw new Error(`Gemini API ${resp.status}`);
-  const data = await resp.json();
-  return data.candidates?.[0]?.content?.parts?.[0]?.text ?? '';
+  try {
+    return await fetchFromGemini(base64Image, eventsText);
+  } catch (geminiErr) {
+    console.warn('[Session Updates] Gemini unavailable, falling back to Claude:', geminiErr.message);
+    return await fetchFromClaude(base64Image, eventsText);
+  }
 }
-*/
 
-async function fetchCommentary(base64Image, recentEvents) {
+// Legacy single-provider shape kept for reference only
+async function _fetchCommentaryClaudeOnly(base64Image, recentEvents) {
   const eventsText = recentEvents.length
     ? recentEvents.map((e) => e.description).join('; ')
     : 'none';
@@ -58,7 +100,7 @@ async function fetchCommentary(base64Image, recentEvents) {
     },
     body: JSON.stringify({
       model: 'claude-haiku-4-5',
-      max_tokens: 150,
+      max_tokens: 300,
       system: SYSTEM_PROMPT,
       messages: [{
         role: 'user',
@@ -71,7 +113,7 @@ async function fetchCommentary(base64Image, recentEvents) {
   });
   if (!resp.ok) throw new Error(`Anthropic API ${resp.status}`);
   const data = await resp.json();
-  return data.content?.[0]?.text ?? '';
+  return { text: data.content?.[0]?.text ?? '', provider: 'Claude Haiku' };
 }
 
 
@@ -169,7 +211,8 @@ export default function Monitor() {
       hasCanvas: !!canvas,
       readyState: videoEl?.readyState,
       videoWidth: videoEl?.videoWidth,
-      apiKey: import.meta.env.VITE_GEMINI_API_KEY ? '✓ set' : '✗ missing',
+      geminiKey: import.meta.env.VITE_GEMINI_API_KEY ? '✓ set' : '✗ missing',
+      anthropicKey: import.meta.env.VITE_ANTHROPIC_API_KEY ? '✓ set' : '✗ missing',
     });
 
     if (!videoEl || !canvas) {
@@ -194,12 +237,11 @@ export default function Monitor() {
 
     setAnalyzing(true);
     try {
-      console.log('[Session Updates] Calling Gemini API…');
-      const text = await fetchCommentary(base64, window30s);
-      console.log('[Session Updates] Response:', text);
+      const { text, provider } = await fetchCommentary(base64, window30s);
+      console.log(`[Session Updates] Response via ${provider}:`, text);
       if (!text) return;
       const timestamp = format(new Date(), 'HH:mm');
-      setSessionUpdates((prev) => [{ time: timestamp, text }, ...prev].slice(0, MAX_UPDATES));
+      setSessionUpdates((prev) => [{ time: timestamp, text, provider }, ...prev].slice(0, MAX_UPDATES));
     } catch (err) {
       console.error('[Session Updates] Gemini API error:', err);
     } finally {
@@ -472,7 +514,18 @@ export default function Monitor() {
             {sessionUpdates.map((u, i) => (
               <div key={i} className="flex gap-2 text-sm">
                 <span className="text-gray-500 shrink-0 font-mono text-xs pt-0.5">{u.time}</span>
-                <p className="text-gray-200 leading-snug">{u.text}</p>
+                <div className="flex-1 min-w-0">
+                  <p className="text-gray-200 leading-snug">{u.text}</p>
+                  {u.provider && (
+                    <span className={`text-xs mt-0.5 inline-block px-1.5 py-0.5 rounded font-medium ${
+                      u.provider.startsWith('Gemini')
+                        ? 'bg-blue-900/50 text-blue-300'
+                        : 'bg-orange-900/50 text-orange-300'
+                    }`}>
+                      {u.provider}
+                    </span>
+                  )}
+                </div>
               </div>
             ))}
           </div>

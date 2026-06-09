@@ -268,6 +268,7 @@ export default function Monitor() {
               playsInline
               className="w-full h-full object-cover"
             />
+            {/* DEMO FALLBACK — commented out for live device testing
             {!monitoring && (
               <video
                 src="/trustpaws/demo-cam.mp4"
@@ -278,6 +279,7 @@ export default function Monitor() {
                 className="absolute inset-0 w-full h-full object-cover"
               />
             )}
+            */}
             {/* Motion level overlay */}
             {monitoring && (
               <div className="absolute bottom-2 left-2 right-2">

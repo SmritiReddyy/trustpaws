@@ -131,7 +131,24 @@ export default function Monitor() {
   const runCommentary = useCallback(async () => {
     const videoEl = video.videoRef.current;
     const canvas  = commentaryCanvasRef.current;
-    if (!videoEl || !canvas || videoEl.readyState < 2) return;
+
+    console.log('[Session Updates] runCommentary called', {
+      hasVideo: !!videoEl,
+      hasCanvas: !!canvas,
+      readyState: videoEl?.readyState,
+      videoWidth: videoEl?.videoWidth,
+      apiKey: import.meta.env.VITE_GEMINI_API_KEY ? '✓ set' : '✗ missing',
+    });
+
+    if (!videoEl || !canvas) {
+      console.warn('[Session Updates] Missing video or canvas ref');
+      return;
+    }
+    // readyState 0 = no data, skip; 1+ means metadata loaded (live streams stay at 4)
+    if (videoEl.readyState < 1 || videoEl.videoWidth === 0) {
+      console.warn('[Session Updates] Video not ready yet, readyState:', videoEl.readyState);
+      return;
+    }
 
     canvas.width  = 320;
     canvas.height = 240;
@@ -145,7 +162,9 @@ export default function Monitor() {
 
     setAnalyzing(true);
     try {
+      console.log('[Session Updates] Calling Gemini API…');
       const text = await fetchCommentary(base64, window30s);
+      console.log('[Session Updates] Response:', text);
       if (!text) return;
       const timestamp = format(new Date(), 'HH:mm');
       setSessionUpdates((prev) => [{ time: timestamp, text }, ...prev].slice(0, MAX_UPDATES));

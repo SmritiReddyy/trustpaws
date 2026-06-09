@@ -3,14 +3,44 @@ import { useParams, Link } from 'react-router-dom';
 import { format } from 'date-fns';
 import {
   ArrowLeft, Video, VideoOff, Mic, MicOff, AlertTriangle,
-  CheckCircle, Play, Trash2, Eye, RefreshCw,
+  CheckCircle, Play, Trash2, Eye, RefreshCw, Bot,
 } from 'lucide-react';
 import toast from 'react-hot-toast';
 import api from '../../utils/api';
 import { useAudioDetection } from '../../hooks/useAudioDetection';
 import { useVideoMonitor }   from '../../hooks/useVideoMonitor';
 
-const COOLDOWN_MS = 12000; // min gap between auto-saves
+const COOLDOWN_MS = 12000;
+const COMMENTARY_INTERVAL_MS = 30000;
+const MAX_UPDATES = 20;
+const GEMINI_MODEL = 'gemini-2.0-flash';
+const SYSTEM_PROMPT =
+  'You are an AI assistant monitoring a dog grooming session via camera. Describe what you observe in 1-2 short plain sentences. Focus on the dog\'s activity and the groomer\'s actions. If audio events are provided, incorporate them naturally. Be calm and factual, written for a pet parent.';
+
+async function fetchCommentary(base64Image, recentEvents) {
+  const eventsText = recentEvents.length
+    ? recentEvents.map((e) => e.description).join('; ')
+    : 'none';
+  const apiKey = import.meta.env.VITE_GEMINI_API_KEY;
+  const url = `https://generativelanguage.googleapis.com/v1beta/models/${GEMINI_MODEL}:generateContent?key=${apiKey}`;
+  const resp = await fetch(url, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({
+      systemInstruction: { parts: [{ text: SYSTEM_PROMPT }] },
+      contents: [{
+        parts: [
+          { inline_data: { mime_type: 'image/jpeg', data: base64Image } },
+          { text: `Recent events in the last 30s: ${eventsText}` },
+        ],
+      }],
+      generationConfig: { maxOutputTokens: 150 },
+    }),
+  });
+  if (!resp.ok) throw new Error(`Gemini API ${resp.status}`);
+  const data = await resp.json();
+  return data.candidates?.[0]?.content?.parts?.[0]?.text ?? '';
+}
 
 
 export default function Monitor() {
@@ -18,10 +48,14 @@ export default function Monitor() {
   const [appt,        setAppt]        = useState(null);
   const [clips,       setClips]       = useState([]);
   const [loading,     setLoading]     = useState(true);
-  const [monitoring,  setMonitoring]  = useState(false);
-  const [alert,       setAlert]       = useState(null); // { reason, type, confidence }
-  const [saving,      setSaving]      = useState(false);
-  const lastTriggerRef = useRef(0);
+  const [monitoring,      setMonitoring]      = useState(false);
+  const [alert,           setAlert]           = useState(null);
+  const [saving,          setSaving]          = useState(false);
+  const [sessionUpdates,  setSessionUpdates]  = useState([]);
+  const [analyzing,       setAnalyzing]       = useState(false);
+  const lastTriggerRef    = useRef(0);
+  const recentEventsRef   = useRef([]);
+  const commentaryCanvasRef = useRef(null);
 
   // ── Load appointment ──────────────────────────────────────────────────────
   const loadClips = useCallback(() =>
@@ -37,6 +71,7 @@ export default function Monitor() {
   // ── Trigger handler (shared by audio + video) ─────────────────────────────
   const handleTrigger = useCallback(async ({ type, reason, confidence }) => {
     const now = Date.now();
+    recentEventsRef.current.push({ time: now, description: reason });
     if (now - lastTriggerRef.current < COOLDOWN_MS) return;
     lastTriggerRef.current = now;
 
@@ -91,6 +126,40 @@ export default function Monitor() {
 
   // stop on unmount
   useEffect(() => () => { audio.stop(); video.stop(); }, []);
+
+  // AI commentary interval
+  useEffect(() => {
+    if (!monitoring) return;
+    const intervalId = setInterval(async () => {
+      const videoEl = video.videoRef.current;
+      const canvas  = commentaryCanvasRef.current;
+      if (!videoEl || !canvas || videoEl.readyState < 2) return;
+
+      canvas.width  = 320;
+      canvas.height = 240;
+      canvas.getContext('2d').drawImage(videoEl, 0, 0, 320, 240);
+      const dataUrl  = canvas.toDataURL('image/jpeg', 0.7);
+      const base64   = dataUrl.replace(/^data:image\/jpeg;base64,/, '');
+
+      const now = Date.now();
+      const window30s = recentEventsRef.current.filter((e) => now - e.time <= 30000);
+      recentEventsRef.current = window30s;
+
+      setAnalyzing(true);
+      try {
+        const text = await fetchCommentary(base64, window30s);
+        if (!text) return;
+        const timestamp = format(new Date(), 'HH:mm');
+        setSessionUpdates((prev) => [{ time: timestamp, text }, ...prev].slice(0, MAX_UPDATES));
+      } catch {
+        // silently skip on failure
+      } finally {
+        setAnalyzing(false);
+      }
+    }, COMMENTARY_INTERVAL_MS);
+
+    return () => clearInterval(intervalId);
+  }, [monitoring, video.videoRef]);
 
   // ── Manual clip save ──────────────────────────────────────────────────────
   const saveManualClip = useCallback(async () => {
@@ -175,6 +244,9 @@ export default function Monitor() {
           </button>
         </div>
       )}
+
+      {/* Hidden canvas for AI frame capture */}
+      <canvas ref={commentaryCanvasRef} style={{ display: 'none' }} />
 
       <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
         {/* Video feed */}
@@ -309,6 +381,38 @@ export default function Monitor() {
             </p>
           )}
         </div>
+      </div>
+
+      {/* Session Updates panel */}
+      <div className="card bg-gray-900 border border-gray-700 space-y-3">
+        <div className="flex items-center justify-between">
+          <p className="text-sm font-medium text-gray-200 flex items-center gap-2">
+            <Bot size={15} className="text-brand-400" /> Session Updates
+          </p>
+          {analyzing && (
+            <span className="text-xs text-gray-400 animate-pulse">Analyzing…</span>
+          )}
+          {monitoring && !analyzing && (
+            <span className="text-xs text-gray-500">every 30s</span>
+          )}
+        </div>
+
+        {sessionUpdates.length === 0 ? (
+          <p className="text-xs text-gray-500 text-center py-4">
+            {monitoring
+              ? 'First update in ~30 seconds…'
+              : 'Start monitoring to receive AI commentary.'}
+          </p>
+        ) : (
+          <div className="space-y-2 max-h-60 overflow-y-auto pr-1">
+            {sessionUpdates.map((u, i) => (
+              <div key={i} className="flex gap-2 text-sm">
+                <span className="text-gray-500 shrink-0 font-mono text-xs pt-0.5">{u.time}</span>
+                <p className="text-gray-200 leading-snug">{u.text}</p>
+              </div>
+            ))}
+          </div>
+        )}
       </div>
 
       {/* Detection info */}

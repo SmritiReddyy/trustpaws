@@ -13,10 +13,11 @@ import { useVideoMonitor }   from '../../hooks/useVideoMonitor';
 const COOLDOWN_MS = 12000;
 const COMMENTARY_INTERVAL_MS = 30000;
 const MAX_UPDATES = 20;
-const GEMINI_MODEL = 'gemini-2.5-flash';
 const SYSTEM_PROMPT =
   'You are an AI assistant monitoring a dog grooming session via camera. Describe what you observe in 1-2 short plain sentences. Focus on the dog\'s activity and the groomer\'s actions. If audio events are provided, incorporate them naturally. Be calm and factual, written for a pet parent.';
 
+/* GEMINI IMPLEMENTATION — commented out, swap back if needed
+const GEMINI_MODEL = 'gemini-2.5-flash';
 async function fetchCommentary(base64Image, recentEvents) {
   const eventsText = recentEvents.length
     ? recentEvents.map((e) => e.description).join('; ')
@@ -40,6 +41,37 @@ async function fetchCommentary(base64Image, recentEvents) {
   if (!resp.ok) throw new Error(`Gemini API ${resp.status}`);
   const data = await resp.json();
   return data.candidates?.[0]?.content?.parts?.[0]?.text ?? '';
+}
+*/
+
+async function fetchCommentary(base64Image, recentEvents) {
+  const eventsText = recentEvents.length
+    ? recentEvents.map((e) => e.description).join('; ')
+    : 'none';
+  const resp = await fetch('https://api.anthropic.com/v1/messages', {
+    method: 'POST',
+    headers: {
+      'Content-Type': 'application/json',
+      'x-api-key': import.meta.env.VITE_ANTHROPIC_API_KEY,
+      'anthropic-version': '2023-06-01',
+      'anthropic-dangerous-direct-browser-access': 'true',
+    },
+    body: JSON.stringify({
+      model: 'claude-haiku-4-5',
+      max_tokens: 150,
+      system: SYSTEM_PROMPT,
+      messages: [{
+        role: 'user',
+        content: [
+          { type: 'image', source: { type: 'base64', media_type: 'image/jpeg', data: base64Image } },
+          { type: 'text', text: `Recent events in the last 30s: ${eventsText}` },
+        ],
+      }],
+    }),
+  });
+  if (!resp.ok) throw new Error(`Anthropic API ${resp.status}`);
+  const data = await resp.json();
+  return data.content?.[0]?.text ?? '';
 }
 
 

@@ -131,7 +131,7 @@ export default function Monitor() {
       form.append('appointmentId', id);
       form.append('triggerType', type);
       form.append('confidence', String(confidence ?? 0));
-      form.append('durationSec', String(30 + 8));
+      form.append('durationSec', String(20 + 20));
       await api.post('/clips', form, { headers: { 'Content-Type': 'multipart/form-data' } });
       toast.success('Clip saved & incident auto-created');
       loadClips();
@@ -168,8 +168,11 @@ export default function Monitor() {
     toast('Monitoring stopped', { icon: '⏹' });
   }, [audio, video]);
 
-  // stop on unmount
-  useEffect(() => () => { audio.stop(); video.stop(); }, []);
+  // Auto-start on mount, stop on unmount
+  useEffect(() => {
+    startMonitoring();
+    return () => { audio.stop(); video.stop(); };
+  }, []);  // eslint-disable-line react-hooks/exhaustive-deps
 
   // AI commentary — capture frame + call Gemini
   const runCommentary = useCallback(async () => {
@@ -522,26 +525,27 @@ export default function Monitor() {
       </div>
 
       {/* Controls */}
-      <div className="flex gap-3">
-        {!monitoring ? (
-          <button onClick={startMonitoring} className="btn-primary flex items-center gap-2 flex-1 justify-center">
-            <Video size={16} /> Start Monitoring
+      <div className="flex items-center justify-between">
+        <div className="flex items-center gap-2 text-sm text-gray-500">
+          {saving ? (
+            <><RefreshCw size={14} className="animate-spin text-orange-500" /> <span className="text-orange-500">Saving clip…</span></>
+          ) : (
+            <><span className="w-2 h-2 bg-green-500 rounded-full animate-pulse inline-block" /> Auto-saving clips on distress detection</>
+          )}
+        </div>
+        <div className="flex gap-2">
+          <button
+            onClick={saveManualClip}
+            disabled={saving}
+            className="btn-secondary flex items-center gap-1.5 text-xs"
+          >
+            {saving ? <RefreshCw size={13} className="animate-spin" /> : <Video size={13} />}
+            Save Clip Now
           </button>
-        ) : (
-          <>
-            <button onClick={stopMonitoring} className="btn-secondary flex items-center gap-2 flex-1 justify-center">
-              <VideoOff size={16} /> Stop
-            </button>
-            <button
-              onClick={saveManualClip}
-              disabled={saving}
-              className="btn-primary flex items-center gap-2 flex-1 justify-center"
-            >
-              {saving ? <RefreshCw size={16} className="animate-spin" /> : <Video size={16} />}
-              {saving ? 'Saving…' : 'Save Clip Now'}
-            </button>
-          </>
-        )}
+          <button onClick={stopMonitoring} className="flex items-center gap-1.5 text-xs text-gray-400 hover:text-red-500 transition-colors">
+            <VideoOff size={13} /> Stop feed
+          </button>
+        </div>
       </div>
 
       {/* Clips list */}

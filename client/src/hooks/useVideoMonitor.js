@@ -1,7 +1,7 @@
 import { useRef, useState, useCallback } from 'react';
 
-const BUFFER_SECONDS     = 30;
-const POST_TRIGGER_SECS  = 8;
+const BUFFER_SECONDS     = 20;
+const POST_TRIGGER_SECS  = 20;
 const MOTION_THRESHOLD   = 12;   // avg pixel diff per channel (0–255)
 const MOTION_SPIKE_MULT  = 4.5;  // spike vs rolling baseline
 const CANVAS_W           = 320;

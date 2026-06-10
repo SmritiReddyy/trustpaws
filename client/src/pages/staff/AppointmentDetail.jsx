@@ -3,7 +3,7 @@ import { useParams, Link } from 'react-router-dom';
 import { format } from 'date-fns';
 import {
   ArrowLeft, CheckSquare, Square, AlertTriangle, Camera,
-  Copy, ChevronRight, ChevronLeft, Trash2, ShieldAlert,
+  Copy, ChevronRight, ChevronLeft, Trash2, ShieldAlert, Video,
 } from 'lucide-react';
 import toast from 'react-hot-toast';
 import api from '../../utils/api';
@@ -147,7 +147,7 @@ export default function AppointmentDetail() {
         </div>
         <div className="flex gap-2 shrink-0">
           <Link to={`/appointments/${id}/monitor`} className="btn-secondary flex items-center gap-1.5 text-xs">
-            <ShieldAlert size={13} /> Monitor
+            <Video size={13} /> View Live Feed
           </Link>
           <button onClick={copyTrackingLink} className="btn-secondary flex items-center gap-1.5 text-xs">
             <Copy size={13} /> Share

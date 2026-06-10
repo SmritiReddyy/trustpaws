@@ -143,8 +143,8 @@ export default function Monitor() {
   }, [id, loadClips]);
 
   // ── Hooks ─────────────────────────────────────────────────────────────────
-  const audio = useAudioDetection({ onTrigger: monitoring ? handleTrigger : undefined });
-  const video = useVideoMonitor({ onTrigger: monitoring ? handleTrigger : undefined });
+  const audio = useAudioDetection({ onTrigger: handleTrigger });
+  const video = useVideoMonitor({ onTrigger: handleTrigger });
   const { captureClip } = video;
 
   // ── Start / stop monitoring ───────────────────────────────────────────────
@@ -224,12 +224,12 @@ export default function Monitor() {
 
   // AI commentary interval — fire immediately, then every 30s
   useEffect(() => {
-    if (!monitoring) return;
+    if (!video.active) return;
     // slight delay so video element is ready after start
     const firstTimeout = setTimeout(() => runCommentary(), 3000);
     const intervalId   = setInterval(() => runCommentary(), COMMENTARY_INTERVAL_MS);
     return () => { clearTimeout(firstTimeout); clearInterval(intervalId); };
-  }, [monitoring, runCommentary]);
+  }, [video.active, runCommentary]);
 
   // ── Manual clip save ──────────────────────────────────────────────────────
   const saveManualClip = useCallback(async () => {
@@ -465,7 +465,7 @@ export default function Monitor() {
             {analyzing && (
               <span className="text-xs text-gray-400 animate-pulse">Analyzing…</span>
             )}
-            {monitoring && !analyzing && (
+            {video.active && !analyzing && (
               <button
                 onClick={runCommentary}
                 className="text-xs text-gray-400 hover:text-gray-200 underline underline-offset-2"
@@ -480,7 +480,7 @@ export default function Monitor() {
           <p className="text-xs text-gray-500 text-center py-4">
             {monitoring
               ? 'First update in a few seconds…'
-              : 'Start monitoring to receive AI commentary.'}
+              : 'Starting feed…'}
           </p>
         ) : (
           <div className="space-y-2 max-h-60 overflow-y-auto pr-1">

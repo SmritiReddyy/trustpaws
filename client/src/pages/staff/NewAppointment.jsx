@@ -5,14 +5,15 @@ import toast from 'react-hot-toast';
 import api from '../../utils/api';
 import { DEFAULT_SERVICES } from '../../utils/constants';
 import { format } from 'date-fns';
+import { useAuth } from '../../context/AuthContext';
 
 export default function NewAppointment() {
   const navigate = useNavigate();
+  const { user } = useAuth();
   const [pets, setPets] = useState([]);
-  const [staff, setStaff] = useState([]);
   const [form, setForm] = useState({
     petId: '',
-    staffId: '',
+    staffId: user?.id ?? '',
     scheduledAt: format(new Date(), "yyyy-MM-dd'T'HH:mm"),
     notes: '',
     services: [...DEFAULT_SERVICES],
@@ -21,7 +22,6 @@ export default function NewAppointment() {
 
   useEffect(() => {
     api.get('/pets').then((r) => setPets(r.data));
-    api.get('/auth/staff').catch(() => {});
   }, []);
 
   const toggleService = (svc) => {

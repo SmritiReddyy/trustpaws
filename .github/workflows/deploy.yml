@@ -3,6 +3,12 @@ name: Deploy to GitHub Pages
 on:
   push:
     branches: [main]
+    # Only client/ is built for Pages (the server deploys on Render), so docs and
+    # server-only changes don't redeploy the site.
+    paths-ignore:
+      - '*.md'
+      - '*.pdf'
+      - 'server/**'
 
 permissions:
   contents: read

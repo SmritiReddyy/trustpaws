@@ -4,6 +4,10 @@
 
 **Live at → [smritireddyy.github.io/trustpaws](https://smritireddyy.github.io/trustpaws)**
 
+<p align="center">
+  <img src="screenshots/staff-appointment-detail.png" alt="Staff view of an appointment with grooming status, services, and photos" width="100%" />
+</p>
+
 ---
 
 ## What is TrustPaws?
@@ -24,6 +28,12 @@ Staff log every stage of the grooming process. Parents track it in real time.
 - **Visit history** — all past visits in one place: date, services received, groomer, session duration, and notes
 - **Shareable tracking link** — each appointment has a unique link you can open anytime, no login needed
 - **Parent portal** — log in once to see all your pets, active appointments, and visit history in one dashboard
+
+<p align="center">
+  <img src="screenshots/parent-overview.png" alt="Parent portal overview with live appointment status and visit list" width="45%" />
+  &nbsp;
+  <img src="screenshots/parent-noted-issues.png" alt="Parent view of a logged incident and the action taken" width="45%" />
+</p>
 
 ### For Grooming Staff
 - **Daily dashboard** — see today's appointments at a glance with live status
